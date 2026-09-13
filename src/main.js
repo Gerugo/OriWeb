@@ -121,9 +121,23 @@ class TestLevelScene extends Phaser.Scene {
         // Spawn Ori Player
         this.player = new Player(this, 260, 1468);
 
-        // Colliders
+        // Colliders & Overlaps
         this.physics.add.collider(this.player, this.level.platforms);
         this.physics.add.collider(this.player, this.level.destructibles);
+        this.playerHurtTimer = 0;
+
+        this.physics.add.overlap(this.player, this.level.enemies, (player, enemy) => {
+            if (!enemy.isDead) {
+                this.onPlayerHitByEnemy(enemy);
+            }
+        });
+
+        this.physics.add.overlap(this.player, this.level.spores, (player, spore) => {
+            if (spore.active && !spore.isRedirected) {
+                spore.explode();
+                this.onPlayerHitByEnemy(spore);
+            }
+        });
 
         // Camera Follow with Instant Centering & Look-ahead
         const cam = this.cameras.main;
@@ -137,6 +151,7 @@ class TestLevelScene extends Phaser.Scene {
     }
 
     update(time, delta) {
+        if (this.playerHurtTimer > 0) this.playerHurtTimer -= delta;
         this.inputManager.update();
         this.player.update(time, delta);
         this.level.update(time, delta);
@@ -172,12 +187,33 @@ class TestLevelScene extends Phaser.Scene {
         for (const dummy of this.level.dummies) {
             list.push(dummy);
         }
+        if (this.level.enemies) {
+            for (const enemy of this.level.enemies) {
+                if (!enemy.isDead && enemy.isBashable) {
+                    list.push(enemy);
+                }
+            }
+        }
+        if (this.level.spores) {
+            for (const spore of this.level.spores) {
+                if (spore.active && spore.isBashable) {
+                    list.push(spore);
+                }
+            }
+        }
         return list;
     }
 
     getEnemiesInRange(cx, cy, range) {
         const hits = [];
         if (this.level) {
+            if (this.level.enemies) {
+                for (const enemy of this.level.enemies) {
+                    if (!enemy.isDead && enemy.active && Phaser.Math.Distance.Between(cx, cy, enemy.x, enemy.y) < range + 35) {
+                        hits.push(enemy);
+                    }
+                }
+            }
             for (const dummy of this.level.dummies) {
                 if (dummy.active && Phaser.Math.Distance.Between(cx, cy, dummy.x, dummy.y - 35) < range) {
                     hits.push(dummy);
@@ -190,6 +226,37 @@ class TestLevelScene extends Phaser.Scene {
             }
         }
         return hits;
+    }
+
+    onPlayerHitByEnemy(source) {
+        // Invulnerable during Dash, Attack, or Bash
+        if (this.player.isDashing || this.player.state === 'ATTACK' || this.player.isBashing) {
+            return;
+        }
+        if (this.playerHurtTimer > 0) return;
+
+        this.playerHurtTimer = 750; // 750ms invulnerability window
+
+        // Directional knockback
+        const dir = this.player.x >= source.x ? 1 : -1;
+        this.player.body.setVelocity(dir * 280, -260);
+
+        // Hurt VFX: red flash & spark burst
+        this.player.visual.setTint(0xef4444);
+        this.time.delayedCall(160, () => {
+            if (this.player && this.player.visual) {
+                this.player.visual.clearTint();
+            }
+        });
+
+        if (this.vfx) {
+            this.vfx.spawnBurst(this.player.x, this.player.y, 14, 0xef4444, 1.2);
+            this.vfx.spawnShockwave(this.player.x, this.player.y, 70, 0xef4444);
+        }
+
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.shake(80, 0.004);
+        }
     }
 
     onGroundStomp(x, y, range) {

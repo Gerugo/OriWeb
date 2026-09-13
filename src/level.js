@@ -1,4 +1,4 @@
-﻿// Level Manager: Minimalist White Test Arena with Clean Platforms, Distance Grid, and Interactive Test Objects
+// Level Manager: Minimalist White Test Arena with Clean Platforms, Distance Grid, and Interactive Test Objects
 
 class Lantern extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
@@ -254,8 +254,11 @@ class LevelManager {
         this.dummies = [];
         this.destructibles = [];
         this.projectiles = [];
+        this.enemies = [];
+        this.spores = [];
 
         this.buildMinimalistArena();
+        this.scene.physics.add.collider(this.enemies, this.platforms);
     }
 
     buildMinimalistArena() {
@@ -279,6 +282,9 @@ class LevelManager {
         for (let m = 0; m <= 60; m += 10) {
             this.createDistanceMarker(150 + m * 14, 1500, `${m}m`);
         }
+        // Patrol Crawlers on sprint track
+        this.enemies.push(new CrawlerEnemy(this.scene, 580, 1470, 240));
+        this.enemies.push(new CrawlerEnemy(this.scene, 860, 1470, 260));
 
         // Zone 2: Precision Platforming
         this.createZoneSign(1250, 1260, 'ZONE 2: JUMP HEIGHT & DOUBLE JUMP', 'Tap [SPACE] for short hop, HOLD for full height. Press in air for Double Jump.');
@@ -287,12 +293,16 @@ class LevelManager {
         this.createPlatform(1390, 1240, 120, 260);
         this.createPlatform(1560, 1120, 160, 380);
         this.createPlatform(1760, 1000, 140, 500);
+        // Aerial Skeeto hovering above precision towers
+        this.enemies.push(new SkeetoEnemy(this.scene, 1480, 1060));
 
         // Zone 3: Wall Cling & Vertical Chimney
         this.createZoneSign(2150, 840, 'ZONE 3: WALL CLING & VERTICAL SHAFT', 'Cling against wall to slide down. Press [SPACE] to kick off diagonally.');
         this.createPlatform(2000, 600, 60, 900);
         this.createPlatform(2260, 600, 60, 900);
         this.createPlatform(2260, 540, 260, 60);
+        // Corrupted Spitter plant rooted on the chimney summit
+        this.enemies.push(new SpitterEnemy(this.scene, 2380, 505));
 
         // Zone 4: Aerial Bash Course
         this.createZoneSign(2900, 820, 'ZONE 4: AERIAL BASH LANTERN COURSE', 'Hold [RIGHT-CLICK / B / SHIFT] near lantern to aim with mouse, release to slingshot!');
@@ -300,6 +310,9 @@ class LevelManager {
         this.lanterns.push(new Lantern(this.scene, 2800, 1180));
         this.lanterns.push(new Lantern(this.scene, 3020, 1060));
         this.lanterns.push(new Lantern(this.scene, 3240, 1200));
+        // Aerial Skeetos in Bash course
+        this.enemies.push(new SkeetoEnemy(this.scene, 2700, 1220));
+        this.enemies.push(new SkeetoEnemy(this.scene, 3130, 1120));
 
         // Zone 5: Combat Arena
         this.createZoneSign(3650, 1360, 'ZONE 5: COMBAT & STOMP ARENA', 'Press [X / LEFT-CLICK] for Spirit Flame. In air, press [S] to STOMP shatter blocks!');
@@ -311,6 +324,10 @@ class LevelManager {
         const block1 = new DestructibleBlock(this.scene, 3720, 1380, 110, 20);
         this.destructibles.push(block1);
         this.createPlatform(3830, 1380, 100, 20);
+        // Combat Arena Encounter
+        this.enemies.push(new SkeetoEnemy(this.scene, 3680, 1260));
+        this.enemies.push(new CrawlerEnemy(this.scene, 3880, 1470, 240));
+        this.enemies.push(new SpitterEnemy(this.scene, 4120, 1465));
 
     }
 
@@ -387,6 +404,22 @@ class LevelManager {
                 this.projectiles.splice(i, 1);
             }
         }
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const e = this.enemies[i];
+            if (e.isDead || !e.active) {
+                this.enemies.splice(i, 1);
+            } else {
+                e.update(time, delta);
+            }
+        }
+        for (let i = this.spores.length - 1; i >= 0; i--) {
+            const s = this.spores[i];
+            if (!s.active) {
+                this.spores.splice(i, 1);
+            } else {
+                s.update(time, delta);
+            }
+        }
     }
 
     checkStompCollisions(x, y, range) {
@@ -398,6 +431,12 @@ class LevelManager {
         for (const dummy of this.dummies) {
             if (Math.abs(x - dummy.x) < range && Math.abs(y - dummy.y) < 80) {
                 dummy.takeDamage(60);
+            }
+        }
+        for (const enemy of this.enemies) {
+            if (!enemy.isDead && Math.abs(x - enemy.x) < range && Math.abs(y - enemy.y) < 90) {
+                if (enemy.stun) enemy.stun(1400);
+                enemy.takeDamage(75, 0, -220);
             }
         }
     }
