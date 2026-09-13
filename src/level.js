@@ -1,4 +1,4 @@
-// Level Manager: Minimalist White Test Arena with Clean Platforms, Distance Grid, and Interactive Test Objects
+﻿// Level Manager: Minimalist White Test Arena with Clean Platforms, Distance Grid, and Interactive Test Objects
 
 class Lantern extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
@@ -283,8 +283,8 @@ class LevelManager {
             this.createDistanceMarker(150 + m * 14, 1500, `${m}m`);
         }
         // Patrol Crawlers on sprint track
-        this.enemies.push(new CrawlerEnemy(this.scene, 580, 1470, 240));
-        this.enemies.push(new CrawlerEnemy(this.scene, 860, 1470, 260));
+        this.enemies.push(new CrawlerEnemy(this.scene, 580, 1492, 240));
+        this.enemies.push(new CrawlerEnemy(this.scene, 860, 1492, 260));
 
         // Zone 2: Precision Platforming
         this.createZoneSign(1250, 1260, 'ZONE 2: JUMP HEIGHT & DOUBLE JUMP', 'Tap [SPACE] for short hop, HOLD for full height. Press in air for Double Jump.');
@@ -302,7 +302,7 @@ class LevelManager {
         this.createPlatform(2260, 600, 60, 900);
         this.createPlatform(2260, 540, 260, 60);
         // Corrupted Spitter plant rooted on the chimney summit
-        this.enemies.push(new SpitterEnemy(this.scene, 2380, 505));
+        this.enemies.push(new SpitterEnemy(this.scene, 2380, 540));
 
         // Zone 4: Aerial Bash Course
         this.createZoneSign(2900, 820, 'ZONE 4: AERIAL BASH LANTERN COURSE', 'Hold [RIGHT-CLICK / B / SHIFT] near lantern to aim with mouse, release to slingshot!');
@@ -326,8 +326,8 @@ class LevelManager {
         this.createPlatform(3830, 1380, 100, 20);
         // Combat Arena Encounter
         this.enemies.push(new SkeetoEnemy(this.scene, 3680, 1260));
-        this.enemies.push(new CrawlerEnemy(this.scene, 3880, 1470, 240));
-        this.enemies.push(new SpitterEnemy(this.scene, 4120, 1465));
+        this.enemies.push(new CrawlerEnemy(this.scene, 3880, 1492, 240));
+        this.enemies.push(new SpitterEnemy(this.scene, 4120, 1500));
 
     }
 

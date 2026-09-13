@@ -2,16 +2,20 @@
 // Includes: Base Enemy, Skeeto (Aerial), Crawler (Patrol Beetle), Spitter (Turret), and Corrupted Spore
 
 class Enemy extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, texture, hp = 100, displayW = 64, displayH = 64) {
+    constructor(scene, x, y, texture, hp = 100, targetHeight = 60, originX = 0.5, originY = 1.0) {
         super(scene, x, y, texture);
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
         this.hp = hp;
         this.maxHp = hp;
-        this.displayW = displayW;
-        this.displayH = displayH;
-        this.setDisplaySize(displayW, displayH);
+        this.targetHeight = targetHeight;
+        this.setOrigin(originX, originY);
+
+        // Uniform scaling based on native texture size
+        const nativeH = this.height || 1;
+        this.baseScale = targetHeight / nativeH;
+        this.setScale(this.baseScale, this.baseScale);
         this.setDepth(16);
 
         this.flashTimer = 0;
@@ -39,9 +43,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         // Damage number & spark
         if (this.scene.vfx) {
-            this.scene.vfx.showDamageText(this.x, this.y - this.displayH * 0.5, amount);
-            this.scene.vfx.spawnBurst(this.x, this.y, 10, 0xa855f7, 1.2);
-            this.scene.vfx.spawnBurst(this.x, this.y, 6, 0xffffff, 0.9);
+            const topY = this.y - (this.originY * this.displayHeight);
+            this.scene.vfx.showDamageText(this.x, topY - 10, amount);
+            this.scene.vfx.spawnBurst(this.x, topY + this.displayHeight * 0.5, 10, 0xa855f7, 1.2);
+            this.scene.vfx.spawnBurst(this.x, topY + this.displayHeight * 0.5, 6, 0xffffff, 0.9);
         }
 
         if (this.hp <= 0) {
@@ -55,10 +60,11 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.hpBar.clear();
         if (this.hpBarVisibleTimer <= 0 || this.isDead) return;
 
-        const barW = Math.max(40, this.displayW * 0.75);
+        const barW = Math.max(38, this.displayWidth * 0.85);
         const barH = 5;
         const barX = this.x - barW / 2;
-        const barY = this.y - (this.displayH * 0.6) - 10;
+        const topY = this.y - (this.originY * this.displayHeight);
+        const barY = topY - 12;
 
         // Background
         this.hpBar.fillStyle(0x0f172a, 0.85);
@@ -75,13 +81,13 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         if (this.isDead) return;
         this.isDead = true;
 
+        const centerY = this.y - (this.originY - 0.5) * this.displayHeight;
         if (this.scene.vfx) {
-            this.scene.vfx.spawnShockwave(this.x, this.y, 90, 0xa855f7);
-            this.scene.vfx.spawnBurst(this.x, this.y, 22, 0xc084fc, 1.6);
-            this.scene.vfx.spawnBurst(this.x, this.y, 12, 0x00f0ff, 1.3);
+            this.scene.vfx.spawnShockwave(this.x, centerY, 90, 0xa855f7);
+            this.scene.vfx.spawnBurst(this.x, centerY, 22, 0xc084fc, 1.6);
+            this.scene.vfx.spawnBurst(this.x, centerY, 12, 0x00f0ff, 1.3);
         }
 
-        // Camera micro punch
         if (this.scene.cameras && this.scene.cameras.main) {
             this.scene.cameras.main.shake(70, 0.003);
         }
@@ -110,9 +116,9 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 // ----------------------------------------------------------------------------------
 class SkeetoEnemy extends Enemy {
     constructor(scene, x, y) {
-        super(scene, x, y, 'enemy_skeeto', 90, 64, 60);
+        super(scene, x, y, 'enemy_skeeto', 90, 60, 0.5, 0.5);
         this.body.setAllowGravity(false);
-        this.body.setCircle(26, 6, 6);
+        this.body.setCircle(this.width * 0.35, this.width * 0.15, this.height * 0.15);
 
         this.aiState = 'HOVER';
         this.hoverAngle = Math.random() * Math.PI * 2;
@@ -156,7 +162,7 @@ class SkeetoEnemy extends Enemy {
                 // Detect player
                 if (dist < 340 && player.state !== 'RESPAWN') {
                     this.aiState = 'TELEGRAPH';
-                    this.stateTimer = 420; // ms warning before dive
+                    this.stateTimer = 420;
                     this.targetX = player.x;
                     this.targetY = player.y;
                 }
@@ -164,15 +170,13 @@ class SkeetoEnemy extends Enemy {
 
             case 'TELEGRAPH':
                 this.stateTimer -= delta;
-                // Vibrating warning anticipation
                 this.x += (Math.random() - 0.5) * 4;
                 this.setTint(0xef4444);
                 if (this.stateTimer <= 0) {
                     this.clearTint();
                     this.aiState = 'DIVE';
-                    this.stateTimer = 1100; // max dive duration
+                    this.stateTimer = 1100;
 
-                    // Aim dive vector
                     const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
                     const speed = 360;
                     this.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
@@ -181,7 +185,6 @@ class SkeetoEnemy extends Enemy {
 
             case 'DIVE':
                 this.stateTimer -= delta;
-                // Leave purple speed sparks
                 if (Math.random() < 0.3) {
                     this.scene.vfx.spawnBurst(this.x, this.y, 1, 0xc084fc, 0.5);
                 }
@@ -204,7 +207,7 @@ class SkeetoEnemy extends Enemy {
                 break;
         }
 
-        // Facing direction (Ori sprites default face left for enemy)
+        // Facing direction
         if (this.body.velocity.x !== 0) {
             this.setFlipX(this.body.velocity.x > 0);
         } else {
@@ -233,10 +236,11 @@ class SkeetoEnemy extends Enemy {
 // ----------------------------------------------------------------------------------
 class CrawlerEnemy extends Enemy {
     constructor(scene, x, y, patrolDist = 280) {
-        super(scene, x, y, 'enemy_crawler', 120, 78, 56);
+        // Height 58px, origin (0.5, 1.0) so feet sit cleanly on top of floor
+        super(scene, x, y, 'enemy_crawler', 120, 58, 0.5, 1.0);
         this.body.setAllowGravity(true);
-        this.body.setSize(68, 48);
-        this.body.setOffset(5, 8);
+        this.body.setSize(this.width * 0.78, this.height * 0.82);
+        this.body.setOffset(this.width * 0.11, this.height * 0.18);
 
         this.patrolStartX = x - patrolDist / 2;
         this.patrolEndX = x + patrolDist / 2;
@@ -262,15 +266,14 @@ class CrawlerEnemy extends Enemy {
             return;
         }
 
-        const onGround = this.body.blocked.down;
         const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
-        const isSamePlatform = Math.abs(this.y - player.y) < 50;
+        const isSameHeight = Math.abs(this.y - player.y) < 60;
 
-        // Charge if player is in front on same platform
-        if (isSamePlatform && dist < 240 && ((player.x > this.x && this.direction === 1) || (player.x < this.x && this.direction === -1))) {
+        // Charge if player is in front on same floor
+        if (isSameHeight && dist < 240 && ((player.x > this.x && this.direction === 1) || (player.x < this.x && this.direction === -1))) {
             this.body.setVelocityX(this.direction * 220);
             if (Math.random() < 0.2) {
-                this.scene.vfx.spawnBurst(this.x, this.y + 20, 1, 0xf59e0b, 0.4);
+                this.scene.vfx.spawnBurst(this.x, this.y - 10, 1, 0xf59e0b, 0.4);
             }
         } else {
             // Normal patrol
@@ -293,7 +296,7 @@ class CrawlerEnemy extends Enemy {
         this.isStunned = true;
         this.stunTimer = duration;
         this.body.setVelocity(0, -180);
-        this.scene.vfx.spawnBurst(this.x, this.y - 15, 12, 0x38bdf8, 1.2);
+        this.scene.vfx.spawnBurst(this.x, this.y - 30, 12, 0x38bdf8, 1.2);
     }
 }
 
@@ -306,10 +309,14 @@ class CorruptedSpore extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        this.setDisplaySize(34, 34);
+        this.setOrigin(0.5, 0.5);
+        const targetH = 34;
+        this.baseScale = targetH / (this.height || 1);
+        this.setScale(this.baseScale, this.baseScale);
         this.setDepth(18);
+
         this.body.setAllowGravity(false);
-        this.body.setCircle(14, 2, 2);
+        this.body.setCircle(this.width * 0.35, this.width * 0.15, this.height * 0.15);
 
         this.isBashable = true;
         this.isRedirected = false;
@@ -323,7 +330,7 @@ class CorruptedSpore extends Phaser.Physics.Arcade.Sprite {
 
         // Glowing core
         this.glow = scene.add.image(x, y, 'soft_glow');
-        this.glow.setDisplaySize(50, 50);
+        this.glow.setDisplaySize(48, 48);
         this.glow.setBlendMode(Phaser.BlendModes.ADD);
         this.glow.setTint(0xa855f7);
         this.glow.setAlpha(0.6);
@@ -349,7 +356,7 @@ class CorruptedSpore extends Phaser.Physics.Arcade.Sprite {
         if (this.isRedirected) {
             const enemies = this.scene.level.enemies;
             for (const enemy of enemies) {
-                if (!enemy.isDead && Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y) < 40) {
+                if (!enemy.isDead && Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y - (enemy.originY - 0.5) * enemy.displayHeight) < 45) {
                     enemy.takeDamage(100, this.body.velocity.x * 0.5, -200);
                     this.explode();
                     return;
@@ -383,21 +390,21 @@ class CorruptedSpore extends Phaser.Physics.Arcade.Sprite {
 // ----------------------------------------------------------------------------------
 class SpitterEnemy extends Enemy {
     constructor(scene, x, y) {
-        super(scene, x, y, 'enemy_spitter', 110, 72, 74);
+        // Height 78px, origin (0.5, 1.0) so rocky roots sit solidly on platform surface
+        super(scene, x, y, 'enemy_spitter', 110, 78, 0.5, 1.0);
         this.body.setAllowGravity(false);
         this.body.setImmovable(true);
-        this.body.setSize(58, 64);
-        this.body.setOffset(7, 10);
+        this.body.setSize(this.width * 0.72, this.height * 0.8);
+        this.body.setOffset(this.width * 0.14, this.height * 0.2);
 
         this.spitCooldown = 2600;
         this.spitTimer = 1200; // initial delay
-        this.projectiles = [];
     }
 
     update(time, delta) {
         if (this.isDead) return;
         const player = this.scene.player;
-        const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
+        const dist = Phaser.Math.Distance.Between(this.x, this.y - 40, player.x, player.y);
 
         this.setFlipX(player.x > this.x);
 
@@ -405,26 +412,27 @@ class SpitterEnemy extends Enemy {
         if (dist < 550 && player.state !== 'RESPAWN') {
             this.spitTimer -= delta;
 
-            // Telegraph: squash & stretch anticipating spit
+            // Telegraph: subtle squash & stretch proportional to baseScale
             if (this.spitTimer < 400 && this.spitTimer > 0) {
-                this.setScale(0.92, 1.15);
+                this.setScale(this.baseScale * 0.92, this.baseScale * 1.12);
                 this.setTint(0xf43f5e);
             }
 
             if (this.spitTimer <= 0) {
                 this.clearTint();
-                this.setScale(1.15, 0.90);
+                this.setScale(this.baseScale * 1.12, this.baseScale * 0.90);
                 this.scene.tweens.add({
                     targets: this,
-                    scaleX: 1,
-                    scaleY: 1,
+                    scaleX: this.baseScale,
+                    scaleY: this.baseScale,
                     duration: 250,
                     ease: 'Back.easeOut'
                 });
 
-                // Spawn Corrupted Spore projectile
+                // Spawn Corrupted Spore projectile from mouth
+                const mouthOffsetY = 45;
                 const spawnX = this.x + (player.x > this.x ? 25 : -25);
-                const spawnY = this.y - 15;
+                const spawnY = this.y - mouthOffsetY;
                 const spore = new CorruptedSpore(this.scene, spawnX, spawnY, player.x, player.y - 10);
                 this.scene.level.spores.push(spore);
                 this.scene.vfx.spawnBurst(spawnX, spawnY, 8, 0xa855f7, 0.9);
