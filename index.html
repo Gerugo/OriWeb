@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Ori Mechanics Test Chamber | AAA Character Controller</title>
     <script>
         window.onerror = function(msg, url, line, col, error) {
@@ -37,8 +37,12 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #ffffff;
+            background-color: #020813;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #game-container {
@@ -48,6 +52,7 @@
             top: 0;
             left: 0;
             z-index: 1;
+            touch-action: none;
         }
 
         /* Minimalist Modern HUD */
@@ -262,6 +267,7 @@
     <script src="src/enemies.js"></script>
     <script src="src/level.js"></script>
     <script src="src/player.js"></script>
+    <script src="src/touch_controls.js"></script>
     <script src="src/main.js"></script>
 </body>
 </html>

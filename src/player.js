@@ -1,4 +1,4 @@
-﻿// Player Class: AAA Ori Character Controller with 4-Frame Run Stride & Hands-On-Wall Cling
+// Player Class: AAA Ori Character Controller with 4-Frame Run Stride & Hands-On-Wall Cling
 class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         // Base physics body using 'vfx_dot' with unscaled dimensions
@@ -476,9 +476,13 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     handleBashState(input, delta) {
         this.bashHoldTimer -= delta;
 
-        const pointer = this.scene.input.activePointer;
-        const worldPointer = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
-        this.bashAngle = Phaser.Math.Angle.Between(this.bashTarget.x, this.bashTarget.y, worldPointer.x, worldPointer.y);
+        if (Math.abs(input.moveX) > 0.15 || Math.abs(input.moveY) > 0.15) {
+            this.bashAngle = Math.atan2(input.moveY, input.moveX);
+        } else {
+            const pointer = this.scene.input.activePointer;
+            const worldPointer = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+            this.bashAngle = Phaser.Math.Angle.Between(this.bashTarget.x, this.bashTarget.y, worldPointer.x, worldPointer.y);
+        }
 
         this.vfx.updateBashAim(this.bashTarget.x, this.bashTarget.y, this.bashAngle, true);
         this.setPosition(this.bashTarget.x, this.bashTarget.y);

@@ -28,6 +28,7 @@ class InputManager {
         this.dashDirY = 0;
 
         scene.input.mouse.disableContextMenu();
+        this.touch = window.TouchControlsManager ? new TouchControlsManager() : null;
     }
 
     update() {
@@ -62,6 +63,32 @@ class InputManager {
         this.holdingBash = isRightMouseDown || k.b.isDown || k.e.isDown;
 
         this.stomp = Phaser.Input.Keyboard.JustDown(k.s) || Phaser.Input.Keyboard.JustDown(c.down);
+
+        // Merge Touch Controls for Mobile
+        if (this.touch && this.touch.enabled) {
+            if (Math.abs(this.touch.moveX) > 0.05) this.moveX = this.touch.moveX;
+            if (Math.abs(this.touch.moveY) > 0.05) this.moveY = this.touch.moveY;
+
+            if (this.touch.holdingJump) this.holdingJump = true;
+            if (this.touch.justPressedJump) {
+                this.justPressedJump = true;
+                this.touch.justPressedJump = false;
+            }
+
+            if (this.touch.justPressedDash) {
+                this.justPressedDash = true;
+                this.touch.justPressedDash = false;
+                this.dashDirX = this.moveX;
+                this.dashDirY = this.moveY;
+            }
+
+            if (this.touch.attack) this.attack = true;
+            if (this.touch.holdingBash) this.holdingBash = true;
+            if (this.touch.stomp) {
+                this.stomp = true;
+                this.touch.stomp = false;
+            }
+        }
 
         if (navigator.getGamepads) {
             const gamepads = navigator.getGamepads();
