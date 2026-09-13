@@ -354,6 +354,8 @@ class TouchControlsManager {
 
         // --- Virtual Joystick Tracking ---
         const handleStickStart = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             if (this.stickPointerId !== null) return;
             this.stickPointerId = e.pointerId;
 
@@ -367,6 +369,8 @@ class TouchControlsManager {
 
         const handleStickMove = (e) => {
             if (e.pointerId !== this.stickPointerId) return;
+            e.preventDefault();
+            e.stopPropagation();
 
             const dx = e.clientX - this.stickCenter.x;
             const dy = e.clientY - this.stickCenter.y;
@@ -396,6 +400,8 @@ class TouchControlsManager {
 
         const handleStickEnd = (e) => {
             if (e.pointerId !== this.stickPointerId) return;
+            e.preventDefault();
+            e.stopPropagation();
             this.stickPointerId = null;
             this.moveX = 0;
             this.moveY = 0;
@@ -419,6 +425,8 @@ class TouchControlsManager {
             });
 
             const onRelease = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 btn.classList.remove('pressed');
                 this.triggerActionEnd(action);
             };

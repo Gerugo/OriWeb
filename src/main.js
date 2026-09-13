@@ -56,8 +56,10 @@ class InputManager {
         this.dashDirY = this.moveY;
 
         // Clean frame-by-frame state (no stuck keys!)
-        const isLeftMouseDown = pointer.isDown && (pointer.button === 0 || pointer.leftButtonDown());
-        const isRightMouseDown = (pointer.isDown && pointer.button === 2) || pointer.rightButtonDown();
+        // When touch controls are active, disable mouse pointer attacks so touching screen doesn't attack
+        const isTouchActive = this.touch && this.touch.enabled;
+        const isLeftMouseDown = !isTouchActive && pointer.isDown && (pointer.button === 0 || pointer.leftButtonDown());
+        const isRightMouseDown = !isTouchActive && ((pointer.isDown && pointer.button === 2) || pointer.rightButtonDown());
 
         this.attack = isLeftMouseDown || k.x.isDown;
         this.holdingBash = isRightMouseDown || k.b.isDown || k.e.isDown;
