@@ -1,0 +1,4 @@
+﻿*.ps1
+shot*.png
+screenshot*.png
+.DS_Store
